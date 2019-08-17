@@ -1,12 +1,12 @@
 #######################################
-# Syntax Coloring Map For AccelStepper
+# Syntax Coloring Map For ClosedStepper
 #######################################
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
 
-AccelStepper	KEYWORD1
+ClosedStepper	KEYWORD1
 MultiStepper	KEYWORD1
 
 #######################################
