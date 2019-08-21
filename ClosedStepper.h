@@ -12,16 +12,25 @@
 #include <Encoder.h>
 #include <AccelStepper.h>
 
-class ClosedStepper : public AccelStepper
-{
-public:
-    ClosedStepper(uint8_t interface = AccelStepper::FULL4WIRE, uint8_t pin1 = 4, uint8_t pin2 =5 , uint8_t pin3 = 6, uint8_t pin4 = 7, bool enable = true, uint8_t encoderPinA = 2, uint8_t encoderPinB = 3, float stepRatio = 1f);
-    ClosedStepper(void (*forward)(), void (*backward)(), long (*realPosition)());
+class Encoder;
 
-private:
-    long (*_realPosition)();
-    long _nextStep;
-    long _failedSteps
-    Encoder _encoder;
+class ClosedStepper {
+  public:
+    ~ClosedStepper();
+    ClosedStepper(uint8_t enc_pin1=2, uint8_t enc_pin2=3, uint8_t interface = AccelStepper::DRIVER, uint8_t pin1 = 4, uint8_t pin2 = 5 , uint8_t pin3 = 6, uint8_t pin4 = 7, bool enable = true);
+    ClosedStepper(Encoder *encoder, AccelStepper *stepper);
+    void setTarget(long target);
+    long getTarget();
+    bool run();
+    void runContinuous();
+    
 
-}
+  private:
+    long _currentTarget;
+    int _max_err;
+    int _encoder_spr;
+    int _stepper_spr;
+    AccelStepper* _stepper;
+    Encoder* _encoder;
+    
+};

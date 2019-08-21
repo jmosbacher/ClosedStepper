@@ -1,62 +1,64 @@
 #include "ClosedStepper.h"
+
 #define MAX_RETRIES 1000
 
-ClosedStepper::ClosedStepper(uint8_t interface = AccelStepper::DRIVER, 
-                             uint8_t pin1 = 4, uint8_t pin2 =5 , uint8_t pin3 = 6,
-                             uint8_t pin4 = 7, bool enable = true, uint8_t encoderPinA = 2,
-                             uint8_t encoderPinB = 3, float stepRatio = 1f) :
-                             AccelStepper(interface, pin1, pin2, pin3, pin4, enable) {
+ClosedStepper::~ClosedStepper(){
+    delete _stepper;
+    delete _encoder;
+}
+ClosedStepper::ClosedStepper(uint8_t enc_pin1, uint8_t enc_pin2, uint8_t interface, uint8_t pin1, uint8_t pin2 , uint8_t pin3, uint8_t pin4, bool enable) {
+ 
+ _stepper = new AccelStepper(interface, pin1, pin2, pin3, pin4, enable);
+ _encoder = new Encoder(enc_pin1, enc_pin2);
+ _currentTarget = _encoder->read();
+ _max_err = 4;
+ _encoder_spr = 400;
+ _stepper_spr = 200;
 
-    _encoder = Encoder(encoderPinA, encoderPinB);
-    _realPosition = _encoder.read;
-    _nextStep = 0;
-    _failedSteps = 0;
 }
 
-ClosedStepper::ClosedStepper(void (*forward)(), void (*backward)(), long (*realPosition)()) : 
-                             AccelStepper(forward, backward) {
-    _realPosition = realPosition;
-    _nextStep = 0;
-    _failedSteps = 0;
+ClosedStepper::ClosedStepper(Encoder *encoder, AccelStepper *stepper) {
+    _stepper = stepper;
+    _encoder = encoder;
+    _currentTarget = _encoder->read();
+    _max_err = 4;
+    _encoder_spr = 400;
+    _stepper_spr = 200;
 }
 
-boolean ClosedStepper::runSpeed()
-{
-    // Dont do anything unless we actually have a step interval
-    if (!_stepInterval)
-	    return false;
-    _currentPos = _realPosition();
-    if (_failedSteps >= MAX_RETRIES) {
-        moveTo(_currentPos);
-        return false;
+void ClosedStepper::setTarget(long target) {
+    _currentTarget = target;
+}
+long ClosedStepper::getTarget() {
+    return _currentTarget;
+}
+
+bool ClosedStepper::run(){
+    if (_stepper->distanceToGo() == 0) {
+      long realPos = map(_encoder->read(), 0, _encoder_spr, 0, _stepper_spr);
+      if (abs(realPos - _currentTarget)>_max_err){
+        _stepper->setCurrentPosition(realPos);
+        _stepper->moveTo(_currentTarget);
+        return true;
+        }
+      else return false;
+       }
+    else {
+           _stepper->run();
+           return false;
+       }
+      
+}
+void ClosedStepper::runContinuous(){
+    while(1){
+      if (_stepper->distanceToGo() == 0) {
+        long realPos = map(_encoder->read(), 0, _encoder_spr, 0, _stepper_spr);
+      if (abs(realPos - _currentTarget)>_max_err){
+        _stepper->setCurrentPosition(realPos);
+        _stepper->moveTo(_currentTarget);
+        }
+        else return;
+       }
+       else _stepper->run();
     }
-        
-
-    unsigned long time = micros(); 
-        if (time - _lastStepTime >= _stepInterval)
-        {
-            if (_direction == DIRECTION_CW)
-            {
-                // Clockwise
-                _nextStep = _currentPos+1;
-            }
-            else
-            {
-                // Anticlockwise  
-                _nextStep = _currentPos-1;
-            }
-            
-            step(_nextStep);
-            _currentPos = _realPosition();
-            if (_currentPos == _nextStep){ // Step has been succesful.
-                _lastStepTime = time;  // Caution: does not account for costs in step()
-                _failedSteps = 0;
-            } 
-            else _failedSteps+=1; // step failed.
-            return true;
-        }
-        else
-        {
-            return false;
-        }
 }
