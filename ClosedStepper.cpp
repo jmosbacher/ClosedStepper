@@ -46,7 +46,7 @@ void ClosedStepper::setTolerance(int tolerance) {
 }
 
 int ClosedStepper::getEncoderSPR() {
-  return _encoderSpr
+  return _encoderSpr;
 }
 
 void ClosedStepper::setEncoderSPR(int spr) {
