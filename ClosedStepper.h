@@ -19,17 +19,31 @@ class ClosedStepper {
     ~ClosedStepper();
     ClosedStepper(uint8_t enc_pin1=2, uint8_t enc_pin2=3, uint8_t interface = AccelStepper::DRIVER, uint8_t pin1 = 4, uint8_t pin2 = 5 , uint8_t pin3 = 6, uint8_t pin4 = 7, bool enable = true);
     ClosedStepper(Encoder *encoder, AccelStepper *stepper);
+    void init();
     void setTarget(long target);
     long getTarget();
+
+    int getTolerance();
+    void setTolerance(int tolerance);
+
+    int getEncoderSPR();
+    void setEncoderSPR(int spr);
+
+    int getStepperSPR();
+    void setStepperSPR(int spr);
+
+    AccelStepper* getStepper();
+    Encoder* getEncoder();
+
     bool run();
-    void runContinuous();
-    
+
 
   private:
     long _currentTarget;
-    int _max_err;
-    int _encoder_spr;
-    int _stepper_spr;
+    int _maxError = 2;
+    int _encoderSpr = 400;
+    int _stepperSpr = 200;
+    long _nmissed = 0;
     AccelStepper* _stepper;
     Encoder* _encoder;
     
