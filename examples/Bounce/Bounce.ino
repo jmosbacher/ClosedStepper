@@ -13,7 +13,6 @@ ClosedStepper stepper; // Defaults to AccelStepper::DRIVER (driver) with pins: 4
 
 void setup()
 {  
-
   stepper.setTarget(500);
 }
 

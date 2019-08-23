@@ -23,6 +23,9 @@ class ClosedStepper {
     void setTarget(long target);
     long getTarget();
 
+    long getCurrentPosition();
+    void setCurrentPosition(long position);
+
     int getTolerance();
     void setTolerance(int tolerance);
 
@@ -36,7 +39,8 @@ class ClosedStepper {
     Encoder* getEncoder();
 
     bool run();
-
+    void runToTarget();
+    bool runConstSpeed();
 
   private:
     long _currentTarget;
