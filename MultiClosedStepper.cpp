@@ -13,8 +13,8 @@ MultiClosedStepper::MultiClosedStepper()
 
 boolean MultiClosedStepper::addStepper(ClosedStepper& stepper)
 {
-    if (_num_steppers >= CLOSEDSTEPPER_MAX_STEPPERS)
-	return false; // No room for more
+    if (_num_steppers >= CLOSEDSTEPPER_MAX_STEPPERS) return false; // No room for more
+
     _steppers[_num_steppers++] = &stepper;
     return true;
 }
@@ -56,14 +56,15 @@ boolean MultiClosedStepper::run()
     boolean ret = false;
     for (i = 0; i < _num_steppers; i++)
     {
-	    if (_steppers[i]->runConstSpeed());
-	    ret = true;
+	    if (_steppers[i]->runConstSpeed()) ret = true;
     }
     return ret;
 }
+
 
 // Blocks until all steppers reach their target position and are stopped
 void    MultiClosedStepper::runToTarget()
 {
     while (run());
+
 }

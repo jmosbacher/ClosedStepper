@@ -9,11 +9,16 @@
 #include <ClosedStepper.h>
 
 // Define a stepper and the pins it will use
-ClosedStepper stepper; // Defaults to AccelStepper::DRIVER (driver) with pins: 4 - step, 5 - dir, 2 - encoder A, 3 encoder B
+ClosedStepper stepper(2,3,AccelStepper::DRIVER,4,5); // Defaults to AccelStepper::DRIVER (driver) with pins: 4 - step, 5 - dir, 2 - encoder A, 3 encoder B
 
 void setup()
 {  
   stepper.setTarget(500);
+  stepper.setMaxSpeed(600);
+  stepper.setAcceleration(2000);
+  stepper.setEncoderSPR(1600);
+  stepper.setStepperSPR(800);
+  stepper.getStepper()->setPinsInverted(true,true,false);
 }
 
 void loop()

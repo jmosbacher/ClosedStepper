@@ -1,6 +1,6 @@
 #include "ClosedStepper.h"
 
-#define MAX_RETRIES 30
+#define MAX_RETRIES 5
 #define MAX_ACCELERATION 10000
 
 ClosedStepper::~ClosedStepper(){
@@ -22,7 +22,6 @@ ClosedStepper::ClosedStepper(Encoder *encoder, AccelStepper *stepper) {
     this->init();
 }
 
-
 void ClosedStepper::init() {
   _currentTarget = _encoder->read();
   _stepper->setCurrentPosition(_currentTarget);
@@ -31,34 +30,54 @@ void ClosedStepper::init() {
 }
 
 void ClosedStepper::setTarget(long target) {
+  if (target != _currentTarget) {
+  _failed = false;
+    _nmissed = 0;
     _currentTarget = target;
+    _stepper->moveTo(target);
+  }
+  
 }
+
 long ClosedStepper::getTarget() {
     return _currentTarget;
 }
 
 
-int ClosedStepper::getTolerance(){
+float ClosedStepper::getMaxSpeed() {
+  return _stepper->maxSpeed();
+}
+
+void ClosedStepper::setMaxSpeed(float speed) {
+  _stepper->setMaxSpeed(speed);
+}
+
+
+void ClosedStepper::setAcceleration(float accel) {
+  _stepper->setAcceleration(accel);
+}
+
+long ClosedStepper::getTolerance(){
   return _maxError;
 }
 
-void ClosedStepper::setTolerance(int tolerance) {
+void ClosedStepper::setTolerance(long tolerance) {
   _maxError = tolerance;
 }
 
-int ClosedStepper::getEncoderSPR() {
+long ClosedStepper::getEncoderSPR() {
   return _encoderSpr;
 }
 
-void ClosedStepper::setEncoderSPR(int spr) {
+void ClosedStepper::setEncoderSPR(long spr) {
   _encoderSpr = spr;
 }
 
-int ClosedStepper::getStepperSPR() {
+long ClosedStepper::getStepperSPR() {
   return _stepperSpr;
 }
 
-void ClosedStepper::setStepperSPR(int spr) {
+void ClosedStepper::setStepperSPR(long spr) {
   _stepperSpr = spr;
 }
 
@@ -71,54 +90,67 @@ Encoder* ClosedStepper::getEncoder() {
 }
 
 long ClosedStepper::getCurrentPosition() {
-  return map(_encoder->read(), 0, _encoderSpr, 0, _stepperSpr);
+  return _encoder->read()*_stepperSpr/_encoderSpr;
 }
 
 void ClosedStepper::setCurrentPosition(long position) {
-  long enc_pos = map(position, 0, _stepperSpr, 0, _encoderSpr);
+  long enc_pos = position*_encoderSpr/_stepperSpr;
   _encoder->write(enc_pos);
 }
 
+long ClosedStepper::distanceToGo() {
+  return _currentTarget - getCurrentPosition();
+}
+bool ClosedStepper::success() {
+  return !_failed;
+  }
+
+void ClosedStepper::closeLoop(){
+  _stepCount = 0;
+  if ((abs(distanceToGo()-_stepper->distanceToGo())>_maxError)){
+    _nmissed += abs(distanceToGo() - _stepper->distanceToGo());
+    if (_nmissed<_maxMissed){
+      _stepper->setCurrentPosition(getCurrentPosition());
+      _stepper->moveTo(_currentTarget);
+    } else {
+      _failed = true;
+    }
+        }
+}
 
 bool ClosedStepper::run(){
-    if (_stepper->distanceToGo() == 0) {
-      long realPos = map(_encoder->read(), 0, _encoderSpr, 0, _stepperSpr);
-      if (abs(realPos - _currentTarget)>_maxError && _nmissed<MAX_RETRIES){
-        _stepper->setCurrentPosition(realPos);
-        _stepper->moveTo(_currentTarget);
-        _nmissed++;
-        return true;
-        }
-      else {
-        return false;}
-       }
-    else {
-        _stepper->run();
-        _nmissed = 0;
-        return true;
-       } 
+  if (_stepCount > _testInterval) {
+    closeLoop();
+    if (_failed) return false;
+    }
+  if (_stepper->run()) {
+    _stepCount++;
+    return true; 
+  }
+  return false;
 }
 
 bool ClosedStepper::runConstSpeed() {
-      if (_stepper->distanceToGo() == 0) {
-      long realPos = map(_encoder->read(), 0, _encoderSpr, 0, _stepperSpr);
-      if ((abs(realPos - _currentTarget)>_maxError) && (_nmissed<MAX_RETRIES)){
-        _stepper->setCurrentPosition(realPos);
-        _stepper->moveTo(_currentTarget);
-        _nmissed++;
-        return true;
-        }
-      else {
-        return false;}
-       }
-    else {
-        _stepper->runSpeed();
-        _nmissed = 0;
-        return true;
-       } 
-}
+  
+  if (_stepCount > _testInterval) {
+    closeLoop();
+    if (_failed) return false;
+    }
+  if (_stepper->runSpeed()) {
+    _stepCount++;
+    return true; 
+  }
+  return false;
+  }
 
 void ClosedStepper::runToTarget() {
+  _nmissed = 0;
   while (run());
-  
+}
+
+void ClosedStepper::stop(){
+    _stepper->stop();
+    while (_stepper->run());
+    setCurrentPosition(_stepper->currentPosition());
+
 }
